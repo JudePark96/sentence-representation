@@ -41,6 +41,9 @@ class Trainer(object):
                 self.optimizer.step()
 
                 if (idx + 1) % 1000 == 0:
+                    print(f'kl_loss: {kl_loss}')
+
+                if (idx + 1) % 1000 == 0:
                     T.save(self.model.state_dict(), './checkpoint/' + f'model-{iter}-{idx}.pt')
 
     def evaluate(self):
