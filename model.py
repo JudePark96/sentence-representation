@@ -87,9 +87,14 @@ class BertSE(nn.Module):
         return last_hidden_states
 
     def generate_targets(self, bs: int):
-        # TODO => Label Smoothing 을 추가하는 것도 좋은 전략 중 하나다.
         return torch.diag(torch.ones(bs - 1), 1).to(get_device_setting())
 
+    def generate_smooth_targets(self, bs, offsetlist=[1], smooth_rate=0.1):
+        targets = torch.zeros(bs, bs, device=self.device).fill_(smooth_rate)
+        for offset in offsetlist:
+            targets += torch.diag(torch.ones(bs-abs(offset), device=self.device), diagonal=offset)
+        targets /= targets.sum(1, keepdim=True)
+        return targets
 
 # +
 if __name__ == '__main__':

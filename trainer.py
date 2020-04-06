@@ -30,7 +30,7 @@ class Trainer(object):
                 self.optimizer.zero_grad()
                 input_ids = input_ids.to(self.device)
                 bs, seq_len = input_ids.size()
-                target = self.model.generate_targets(bs)
+                target = self.model.generate_smooth_targets(bs)
                 output = self.model(input_ids)
 
                 kl_loss = self.loss(output, target)
