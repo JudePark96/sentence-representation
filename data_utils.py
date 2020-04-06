@@ -1,27 +1,23 @@
-from konlpy.tag import Mecab
-from tqdm import tqdm
-import _pickle as p
+__author__ = 'JudePark'
+__email__ = 'judepark@kookmin.ac.kr'
 
 
-def split_punctuation(path: str) -> None:
+from transformers import BertTokenizer
 
-    file_name = 'wiki_preprocessed.txt'
-    tokenizer = Mecab()
-    result = []
 
-    with open(f'{path}{file_name}', 'r') as f:
-        for seqs in tqdm(f):
-            seqs = seqs.split('.')
+def tokenize(tokenizer: BertTokenizer, sentence: str, max_len: int = 50):
+    # For single sequences:
+    #  tokens:   [CLS] I am a boy . [SEP]
+    #  type_ids: 0   0   0   0  0     0 0
 
-            for seq in seqs:
-                result.append(tokenizer.morphs(seq.strip()))
-        f.close()
+    tokens = tokenizer.encode_plus(sentence, max_length=max_len, pad_to_max_length=True)
+    assert len(tokens['input_ids']) == max_len
+    assert len(tokens['token_type_ids']) == max_len
+    assert len(tokens['attention_mask']) == max_len
 
-    with open(f'{path}split_punc.pkl', 'wb') as f:
-        print('start dumping pickle')
-        p.dump(result, f)
+    return tokens
 
 
 if __name__ == '__main__':
-    split_punctuation('./rsc/data/')
+    tokenize(BertTokenizer.from_pretrained('bert-base-uncased'), 'the dog is hairy .')
     pass
