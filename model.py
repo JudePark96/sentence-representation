@@ -57,10 +57,10 @@ class BertSE(nn.Module):
 
             scores = T.mm(ctx_hid, tgt_hid.T)
             mask = torch.eye(len(scores)).to(self.device).bool()
-            scores = scores.masked_fill_(mask, 0)
+            scores = scores.masked_fill(mask, 0)
 
             # [bs x bs]
-            return nn.LogSoftmax(dim=1)(scores)
+            return nn.LogSoftmax(dim=1).to(get_device_setting())(scores)
         else:
             # [bs x hidden_dim]
             ctx_seqs, tgt_seqs = self.get_pooled_output(input_ids), self.get_pooled_output(input_ids)
@@ -68,10 +68,10 @@ class BertSE(nn.Module):
             # [bs x bs]
             scores = T.mm(ctx_seqs, tgt_seqs.T)
             mask = torch.eye(len(scores)).to(self.device).bool()
-            scores = scores.masked_fill_(mask, 0)
+            scores = scores.masked_fill(mask, 0)
 
             # [bs x bs]
-            return nn.LogSoftmax(dim=1)(scores)
+            return nn.LogSoftmax(dim=1).to(get_device_setting())(scores)
 
     def get_pooled_output(self, input_ids):
         # Reference => https://huggingface.co/transformers/model_doc/bert.html#transformers.BertModel
