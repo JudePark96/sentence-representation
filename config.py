@@ -12,6 +12,7 @@ def get_device_setting():
     return T.device('cuda') if T.cuda.is_available() else T.device('cpu')
 
 data_config = OrderedDict({
-    'bookcorpus_path': '/Users/judepark/Documents/toy_projects/bookcorpus/books_large_p1.txt'
+    'bookcorpus_path': './cleaned.txt'
+#    'bookcorpus_path': '/Users/judepark/Documents/toy_projects/bookcorpus/books_large_p1.txt'
 })
 

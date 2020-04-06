@@ -26,11 +26,12 @@ class Trainer(object):
 
     def train(self, train_loader: DataLoader):
         for iter in tqdm(range(self.epoch)):
-            for idx, (input_ids, token_type_ids, attention_mask) in tqdm(enumerate(train_loader)):
+            for idx, input_ids in tqdm(enumerate(train_loader)):
                 self.optimizer.zero_grad()
+                input_ids = input_ids.to(self.device)
                 bs, seq_len = input_ids.size()
                 target = self.model.generate_targets(bs)
-                output = self.model(T.LongTensor(input_ids).to(self.device))
+                output = self.model(input_ids)
 
                 kl_loss = self.loss(output, target)
                 kl_loss.backward()

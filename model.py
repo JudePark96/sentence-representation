@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 __author__ = 'JudePark'
 __email__ = 'judepark@kookmin.ac.kr'
 
@@ -7,7 +8,7 @@ Advanced Implementation
 """
 
 
-import torch as T
+import torch
 import torch.nn as nn
 
 from config import get_device_setting
@@ -35,7 +36,7 @@ class BertSE(nn.Module):
                 batch_first=True
             )
 
-    def forward(self, input_ids: T.Tensor) -> Any:
+    def forward(self, input_ids: torch.Tensor) -> Any:
         if self.is_lstm:
             bs, seq_len = input_ids.size()
             """
@@ -55,9 +56,9 @@ class BertSE(nn.Module):
             ctx_hid = ctx_hid.view((bs, 2 * self.lstm_hidden_dim))
             tgt_hid = tgt_hid.view((bs, 2 * self.lstm_hidden_dim))
 
-            scores = T.mm(ctx_hid, tgt_hid.T)
-            mask = torch.eye(len(scores)).to(self.device).bool()
-            scores = scores.masked_fill(mask, 0)
+            scores = torch.matmul(ctx_hid, tgt_hid.transpose(0, 1))
+            mask = torch.eye(len(scores)).to(self.device).byte()
+            scores = scores.masked_fill_(mask, 0)
 
             # [bs x bs]
             return nn.LogSoftmax(dim=1).to(get_device_setting())(scores)
@@ -66,8 +67,8 @@ class BertSE(nn.Module):
             ctx_seqs, tgt_seqs = self.get_pooled_output(input_ids), self.get_pooled_output(input_ids)
 
             # [bs x bs]
-            scores = T.mm(ctx_seqs, tgt_seqs.T)
-            mask = torch.eye(len(scores)).to(self.device).bool()
+            scores = torch.matmul(ctx_seqs, tgt_seqs.transpose(0, 1))
+            mask = torch.eye(len(scores)).to(self.device).byte()
             scores = scores.masked_fill(mask, 0)
 
             # [bs x bs]
@@ -87,34 +88,37 @@ class BertSE(nn.Module):
 
     def generate_targets(self, bs: int):
         # TODO => Label Smoothing 을 추가하는 것도 좋은 전략 중 하나다.
-        return T.diag(T.ones(bs - 1), 1)
+        return torch.diag(torch.ones(bs - 1), 1).to(get_device_setting())
 
 
+# +
 if __name__ == '__main__':
-    import torch
-    from transformers import BertTokenizer
-    from data_utils import tokenize
+    pass
+#     import torch
+#     from transformers import BertTokenizer
+#     from data_utils import tokenize
 
-    text = [
-        'he is a king',
-        'she is a queen',
-        'he is a man',
-        'she is a woman',
-        'warsaw is poland capital',
-        'berlin is germany capital',
-        'paris is france capital',
-    ]
+#     text = [
+#         'he is a king',
+#         'she is a queen',
+#         'he is a man',
+#         'she is a woman',
+#         'warsaw is poland capital',
+#         'berlin is germany capital',
+#         'paris is france capital',
+#     ]
 
-    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-    text = torch.LongTensor([tokenize(tokenizer, t)['input_ids'] for t in text])
-    model = BertSE(BertModel.from_pretrained('bert-base-uncased'), False)
-    output = model(text)
-    print(output.shape)
-    print(output)
-    bert_lstm_model = BertSE(BertModel.from_pretrained('bert-base-uncased'), True)
-    output = bert_lstm_model(text)
-    print(output.shape)
-    print(output)
+#     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+#     text = torch.LongTensor([tokenize(tokenizer, t)['input_ids'] for t in text])
+#     model = BertSE(BertModel.from_pretrained('bert-base-uncased'), False)
+#     output = model(text)
+#     print(output.shape)
+#     print(output)
+#     bert_lstm_model = BertSE(BertModel.from_pretrained('bert-base-uncased'), True)
+#     output = bert_lstm_model(text)
+#     print(output.shape)
+#     print(output)
+# -
 
 
 
