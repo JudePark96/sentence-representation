@@ -40,7 +40,7 @@ class Trainer(object):
                 nn.utils.clip_grad_norm_(filter(lambda p: p.requires_grad, self.model.parameters()), 2.0)
                 self.optimizer.step()
 
-                if (idx + 1) % 1000 == 0:
+                if (idx + 1) % 100 == 0:
                     print(f'kl_loss: {kl_loss}')
 
                 if (idx + 1) % 1000 == 0:
