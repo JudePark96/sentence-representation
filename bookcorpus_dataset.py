@@ -35,5 +35,3 @@ if __name__ == '__main__':
             corpus.append(seq.strip())
 
         f.close()
-
-

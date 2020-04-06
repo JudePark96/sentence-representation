@@ -1,12 +1,19 @@
 __author__ = 'JudePark'
 __email__ = 'judepark@kookmin.ac.kr'
 
+"""
+An Efficient Framework for Learning Sentence Representations (ICLR 2018)
+Advanced Implementation
+"""
+
 
 import torch as T
 import torch.nn as nn
 
+from config import get_device_setting
 from transformers import BertModel
 from typing import Any
+
 
 class BertSE(nn.Module):
     """
@@ -18,6 +25,7 @@ class BertSE(nn.Module):
         self.hidden_dim = self.bert.config.hidden_size
         self.lstm_hidden_dim = 256
         self.is_lstm = is_lstm
+        self.device = get_device_setting()
 
         if self.is_lstm:
             self.lstm = nn.LSTM(
@@ -48,9 +56,10 @@ class BertSE(nn.Module):
             tgt_hid = tgt_hid.view((bs, 2 * self.lstm_hidden_dim))
 
             scores = T.mm(ctx_hid, tgt_hid.T)
-            mask = torch.eye(len(scores)).to().bool()
+            mask = torch.eye(len(scores)).to(self.device).bool()
             scores = scores.masked_fill_(mask, 0)
 
+            # [bs x bs]
             return nn.LogSoftmax(dim=1)(scores)
         else:
             # [bs x hidden_dim]
@@ -58,9 +67,10 @@ class BertSE(nn.Module):
 
             # [bs x bs]
             scores = T.mm(ctx_seqs, tgt_seqs.T)
-            mask = torch.eye(len(scores)).to().bool()
+            mask = torch.eye(len(scores)).to(self.device).bool()
             scores = scores.masked_fill_(mask, 0)
 
+            # [bs x bs]
             return nn.LogSoftmax(dim=1)(scores)
 
     def get_pooled_output(self, input_ids):
