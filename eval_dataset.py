@@ -82,7 +82,7 @@ def load_data(task:str, path:str, tokenizer: BertTokenizer) -> Tuple[Any, Any, A
     train_x, test_x, train_y, test_y = train_test_split(texts, labels, test_size=0.25)  # Default size.
 
     # 훈련 데이터 / 테스트 데이터 / 훈련 검증 데이터 / 테스트 검증 데이터
-    return train_x, test_x, train_y, test_y
+    return np.array(train_x), np.array(test_x), np.array(train_y), np.array(test_y)
 
 
 if __name__ == '__main__':
