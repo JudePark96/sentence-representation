@@ -85,9 +85,6 @@ if __name__ == '__main__':
     with open(data_config['bookcorpus_path'], 'r') as f:
         for i, seq in tqdm(enumerate(f)):
             corpus.append(seq.strip())
-            if i == 10000:
-                # 빠른 테스트를 위해서
-                break
 
         f.close()
 
