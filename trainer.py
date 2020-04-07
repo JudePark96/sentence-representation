@@ -5,7 +5,7 @@ from sklearn.linear_model import LogisticRegression
 
 from bookcorpus_dataset import get_data_loader, BookCorpusDataset
 from eval_dataset import EvalDataset, get_eval_loader
-from eval_tasks import extract_features, fit_lr, get_lr_score
+from eval_tasks import extract_features, fit_lr
 from config import get_device_setting, data_config
 from transformers import BertModel, BertTokenizer
 from torch.utils.tensorboard import SummaryWriter
@@ -72,26 +72,16 @@ class Trainer(object):
         lr = LogisticRegression(C=1.0)
 
         print('*************** eval_training ... ***************')
-        eval_train_embed, labels = extract_features(self.model, eval_train_loader)
-        eval_test_embed, labels = extract_features(self.model, eval_test_loader)
+        eval_train_embed, eval_train_labels = extract_features(self.model, eval_train_loader)
+        eval_test_embed, eval_test_labels = extract_features(self.model, eval_test_loader)
 
         # TODO => extract_features 가 제대로 동작하는지 확인할 것
         # TODO => 제대로 동작한다면 extract_features 를 바탕으로 evaluation method 를 작성할 것.
         # TODO => Tensorboard 로 scalar 값 작성항 것.
-
-        # train_x, train_y = [], []
-        #
-        # for i, (x, y) in enumerate(eval_train_loader):
-        #     train_x_embedding = extract_features(self.model, x)
-        #     train_x.append(train_x_embedding.cpu().detach().numpy())
-        #     train_y.append(y)
-        #
-        # for i, (x, y) in enumerate(eval_test_loader):
-        #     test_x_embedding = extract_features(self.model, x)
-        #     acc, f1 = get_lr_score(lr, test_x_embedding, y)
-        #
-        #     self.writer.add_scalar('Eval/MRQA_acc', acc, i)
-        #     self.writer.add_scalar('Eval/MRQA_f1', f1, i)
+        acc, f1 = fit_lr(eval_train_embed, eval_train_labels, eval_test_embed, eval_test_labels)
+        print(acc, f1)
+        self.writer.add_scalar('Task/MRQA/acc', acc, steps)
+        self.writer.add_scalar('Task/MRQA/f1', f1, steps)
 
 
 if __name__ == '__main__':
