@@ -29,74 +29,101 @@ class BertSE(nn.Module):
         self.device = get_device_setting()
 
         if self.is_lstm:
-            self.lstm = nn.LSTM(
+            self.ctx_lstm = nn.LSTM(
                 input_size=self.bert.config.hidden_size,
                 hidden_size=self.lstm_hidden_dim,
                 bidirectional=True,
                 batch_first=True
             )
 
-    def forward(self, input_ids: torch.Tensor) -> Any:
-        if self.is_lstm:
-            bs, seq_len = input_ids.size()
-            """
-            Deep Contextualized Embedding through BI-LSTM
-            """
-            # [bs x seq_len x hidden_dim]
-            ctx_seqs, tgt_seqs = self.get_last_hidden_states(input_ids), self.get_last_hidden_states(input_ids)
+            self.tgt_lstm = nn.LSTM(
+                input_size=self.bert.config.hidden_size,
+                hidden_size=self.lstm_hidden_dim,
+                bidirectional=True,
+                batch_first=True
+            )
 
-            # hidden => [2 x bs x hidden_dim]
-            ctx, ctx_hid = self.lstm(ctx_seqs)
-            tgt, tgt_hid = self.lstm(tgt_seqs)
+    def forward(self, input_ids: torch.Tensor, is_eval:bool = False) -> torch.Tensor:
+        if is_eval:
+            if self.is_lstm:
+                ctx_seqs, tgt_seqs = self.get_last_hidden_states(input_ids), self.get_last_hidden_states(input_ids)
+                ctx, ctx_hid = self.ctx_lstm(ctx_seqs)
+                tgt, tgt_hid = self.tgt_lstm(tgt_seqs)
 
-            ctx_hid = ctx_hid[-1]
-            tgt_hid = tgt_hid[-1]
+                ctx_hid = ctx_hid[-1]
+                tgt_hid = tgt_hid[-1]
 
-            # [bs x (2 * lstm_hidden_dim)]
-            ctx_hid = ctx_hid.view((bs, 2 * self.lstm_hidden_dim))
-            tgt_hid = tgt_hid.view((bs, 2 * self.lstm_hidden_dim))
+                # [bs x (2 * lstm_hidden_dim)]
+                ctx_hid = ctx_hid.view((bs, 2 * self.lstm_hidden_dim))
+                tgt_hid = tgt_hid.view((bs, 2 * self.lstm_hidden_dim))
 
-            scores = torch.matmul(ctx_hid, tgt_hid.transpose(0, 1))
-            mask = torch.eye(len(scores)).to(self.device).byte()
-            scores = scores.masked_fill_(mask, 0)
+                # [bs x (2 * (ctx_hid + tgt_hid))]
+                ctx_tgt_hid = torch.cat((ctx_hid, tgt_hid), dim=1)
 
-            # [bs x bs]
-            return nn.LogSoftmax(dim=1).to(get_device_setting())(scores)
+                return ctx_tgt_hid
+            else:
+                return self.get_pooled_output(input_ids)
         else:
-            # [bs x hidden_dim]
-            ctx_seqs, tgt_seqs = self.get_pooled_output(input_ids), self.get_pooled_output(input_ids)
+            if self.is_lstm:
+                bs, seq_len = input_ids.size()
+                """
+                Deep Contextualized Embedding through BI-LSTM
+                """
+                # [bs x seq_len x hidden_dim]
+                ctx_seqs, tgt_seqs = self.get_last_hidden_states(input_ids), self.get_last_hidden_states(input_ids)
 
-            # [bs x bs]
-            scores = torch.matmul(ctx_seqs, tgt_seqs.transpose(0, 1))
-            mask = torch.eye(len(scores)).to(self.device).byte()
-            scores = scores.masked_fill(mask, 0)
+                # hidden => [2 x bs x hidden_dim]
+                ctx, ctx_hid = self.ctx_lstm(ctx_seqs)
+                tgt, tgt_hid = self.tgt_lstm(tgt_seqs)
 
-            # [bs x bs]
-            return nn.LogSoftmax(dim=1).to(get_device_setting())(scores)
+                ctx_hid = ctx_hid[-1]
+                tgt_hid = tgt_hid[-1]
 
-    def get_pooled_output(self, input_ids):
+                # [bs x (2 * lstm_hidden_dim)]
+                ctx_hid = ctx_hid.view((bs, 2 * self.lstm_hidden_dim))
+                tgt_hid = tgt_hid.view((bs, 2 * self.lstm_hidden_dim))
+
+                scores = torch.matmul(ctx_hid, tgt_hid.transpose(0, 1))
+                mask = torch.eye(len(scores)).to(self.device).byte()
+                scores = scores.masked_fill_(mask, 0)
+
+                # [bs x bs]
+                return nn.LogSoftmax(dim=1).to(get_device_setting())(scores)
+            else:
+                # [bs x hidden_dim]
+                ctx_seqs, tgt_seqs = self.get_pooled_output(input_ids), self.get_pooled_output(input_ids)
+
+                # [bs x bs]
+                scores = torch.matmul(ctx_seqs, tgt_seqs.transpose(0, 1))
+                mask = torch.eye(len(scores)).to(self.device).byte()
+                scores = scores.masked_fill(mask, 0)
+
+                # [bs x bs]
+                return nn.LogSoftmax(dim=1).to(get_device_setting())(scores)
+
+    def get_pooled_output(self, input_ids) -> torch.Tensor:
         # Reference => https://huggingface.co/transformers/model_doc/bert.html#transformers.BertModel
         output = self.bert(input_ids=input_ids)
         pooled_output = output[1]
         return pooled_output
 
-    def get_last_hidden_states(self, input_ids):
+    def get_last_hidden_states(self, input_ids) -> torch.Tensor:
         # TODO => [CLS] 토큰을 뺄지 말지.
         output = self.bert(input_ids=input_ids)
         last_hidden_states = output[0]
         return last_hidden_states
 
-    def generate_targets(self, bs: int):
+    def generate_targets(self, bs: int) -> torch.Tensor:
         return torch.diag(torch.ones(bs - 1), 1).to(get_device_setting())
 
-    def generate_smooth_targets(self, bs, offsetlist=[1], smooth_rate=0.1):
+    def generate_smooth_targets(self, bs, offsetlist=[1], smooth_rate=0.1) -> torch.Tensor:
         targets = torch.zeros(bs, bs, device=self.device).fill_(smooth_rate)
         for offset in offsetlist:
             targets += torch.diag(torch.ones(bs-abs(offset), device=self.device), diagonal=offset)
         targets /= targets.sum(1, keepdim=True)
         return targets
 
-# +
+
 if __name__ == '__main__':
     pass
 #     import torch
