@@ -5,6 +5,7 @@ __email__ = 'judepark@kookmin.ac.kr'
 from sklearn.metrics import precision_score, recall_score, f1_score
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
+from torch.utils.data import DataLoader
 from transformers import BertTokenizer
 from config import get_device_setting
 from eval_data_utils import load_data
@@ -19,16 +20,24 @@ import numpy as np
 import torch
 
 
-def extract_features(encoder: BertSE, texts: np.ndarray) -> np.ndarray:
+def extract_features(encoder: BertSE, data_loader: DataLoader) -> np.ndarray:
     encoder.eval()
 
-    # [bs x embed_dim(hid_dim)]
-    sentence_embedding = encoder(torch.from_numpy(texts).long().to(get_device_setting()), is_eval=True)
+    x_embedding, labels = [], []
+
+    for x, y in tqdm(data_loader):
+        # Evaluation Mode On.
+        embed = encoder(x, is_eval = True)
+        x_embedding.append(embed.cpu().detach().numpy())
+        labels.append(y)
+
+    x_embedding = np.array(x_embedding)
+    x_embedding = np.concatenate(x_embedding, axis=0)
 
     encoder.train()
 
     # scikit-learn is avaliable at CPU operation.
-    return sentence_embedding.cpu().detach().numpy()
+    return x_embedding, labels
 
 
 def fit_lr(lr: LogisticRegression, train_x: np.ndarray, train_y: np.ndarray) -> LogisticRegression:
