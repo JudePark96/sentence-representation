@@ -44,6 +44,8 @@ class BertSE(nn.Module):
             )
 
     def forward(self, input_ids: torch.Tensor, is_eval:bool = False) -> torch.Tensor:
+        bs, seq_len = input_ids.size()
+
         if is_eval:
             if self.is_lstm:
                 ctx_seqs, tgt_seqs = self.get_last_hidden_states(input_ids), self.get_last_hidden_states(input_ids)
@@ -65,7 +67,6 @@ class BertSE(nn.Module):
                 return self.get_pooled_output(input_ids)
         else:
             if self.is_lstm:
-                bs, seq_len = input_ids.size()
                 """
                 Deep Contextualized Embedding through BI-LSTM
                 """
