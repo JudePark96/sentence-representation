@@ -2,7 +2,6 @@ __author__ = 'JudePark'
 __email__ = 'judepark@kookmin.ac.kr'
 
 
-# +
 from torch.utils.data import Dataset, DataLoader
 from transformers import BertTokenizer
 from data_utils import tokenize
@@ -13,8 +12,6 @@ from tqdm import tqdm
 
 import torch as T
 
-
-# -
 
 class BookCorpusDataset(Dataset):
     def __init__(self, tokenizer: BertTokenizer, corpus: list, max_len: int) -> None:

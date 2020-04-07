@@ -7,7 +7,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from transformers import BertTokenizer
 from config import get_device_setting
-from eval_dataset import load_data
+from eval_data_utils import load_data
 from data_utils import tokenize
 from model import BertSE
 from typing import Tuple
@@ -31,11 +31,12 @@ def extract_features(encoder: BertSE, texts: np.ndarray) -> np.ndarray:
     return sentence_embedding.cpu().detach().numpy()
 
 
-def fit_lr(train_x: np.ndarray, train_y: np.ndarray, test_x: np.ndarray, test_y: np.ndarray,
-                            random_state:int, c: float) -> Tuple[float, float]:
-
-    lr = LogisticRegression(random_state=random_state, C=c)
+def fit_lr(lr: LogisticRegression, train_x: np.ndarray, train_y: np.ndarray) -> LogisticRegression:
     lr.fit(train_x, train_y)
+    return lr
+
+
+def get_lr_score(lr: LogisticRegression, test_x: np.ndarray, test_y: np.ndarray) -> Tuple[float, float]:
     acc = lr.score(test_x, test_y)
 
     pred_y = lr.predict(test_x)
