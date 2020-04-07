@@ -59,7 +59,7 @@ class Trainer(object):
                 self.optimizer.step()
 
                 # TODO => 잘되나 확인
-                self.evaluate(steps=steps)
+                self.evaluate(eval_train_loader=self.eval_train_loader, eval_test_loader=self.eval_test_loader, steps=steps)
 
                 if (steps) % 100 == 0:
                     self.writer.add_scalar('Train/KL_Loss', kl_loss.item(), steps)
