@@ -85,8 +85,8 @@ class BertSE(nn.Module):
                 tgt_hid = tgt_hid.view((bs, 2 * self.lstm_hidden_dim))
 
                 scores = torch.matmul(ctx_hid, tgt_hid.transpose(0, 1))
-                mask = torch.eye(len(scores)).to(self.device).byte()
-                scores = scores.masked_fill_(mask, 0)
+                mask = torch.eye(len(scores)).to(self.device).bool()
+                scores = scores.masked_fill(mask, 0)
 
                 # [bs x bs]
                 return nn.LogSoftmax(dim=1).to(get_device_setting())(scores)
@@ -96,7 +96,7 @@ class BertSE(nn.Module):
 
                 # [bs x bs]
                 scores = torch.matmul(ctx_seqs, tgt_seqs.transpose(0, 1))
-                mask = torch.eye(len(scores)).to(self.device).byte()
+                mask = torch.eye(len(scores)).to(self.device).bool()
                 scores = scores.masked_fill(mask, 0)
 
                 # [bs x bs]
