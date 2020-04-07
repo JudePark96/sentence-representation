@@ -58,15 +58,13 @@ class Trainer(object):
                 nn.utils.clip_grad_norm_(filter(lambda p: p.requires_grad, self.model.parameters()), 2.0)
                 self.optimizer.step()
 
-                # TODO => 잘되나 확인
-                self.evaluate(eval_train_loader=self.eval_train_loader, eval_test_loader=self.eval_test_loader, steps=steps)
-
                 if (steps) % 100 == 0:
                     self.writer.add_scalar('Train/KL_Loss', kl_loss.item(), steps)
                     print(f'kl_loss: {kl_loss}')
 
-                if (steps + 1) % 1000 == 0:
-                    T.save(self.model.state_dict(), './checkpoint/' + f'model-{iter}-{idx}.pt')
+                if (steps) % 1000 == 0:
+                    self.evaluate(eval_train_loader=self.eval_train_loader, eval_test_loader=self.eval_test_loader, steps=steps)
+                    T.save(self.model.state_dict(), './checkpoint/' + f'sentence_representation.pt')
 
     def evaluate(self, eval_train_loader: DataLoader, eval_test_loader: DataLoader, steps: int) -> None:
         lr = LogisticRegression(C=1.0)
@@ -75,11 +73,8 @@ class Trainer(object):
         eval_train_embed, eval_train_labels = extract_features(self.model, eval_train_loader)
         eval_test_embed, eval_test_labels = extract_features(self.model, eval_test_loader)
 
-        # TODO => extract_features 가 제대로 동작하는지 확인할 것
-        # TODO => 제대로 동작한다면 extract_features 를 바탕으로 evaluation method 를 작성할 것.
-        # TODO => Tensorboard 로 scalar 값 작성항 것.
         acc, f1 = fit_lr(eval_train_embed, eval_train_labels, eval_test_embed, eval_test_labels)
-        print(acc, f1)
+        print(f'{steps} - acc: {acc}, f1: {f1}')
         self.writer.add_scalar('Task/MRQA/acc', acc, steps)
         self.writer.add_scalar('Task/MRQA/f1', f1, steps)
 
@@ -104,7 +99,7 @@ if __name__ == '__main__':
 
     # 학습 데이터
     dataset = BookCorpusDataset(tokenizer, corpus, 50)
-    train_loader = get_data_loader(dataset, 32)
+    train_loader = get_data_loader(dataset, 50)
 
     # 검증 - 학습 데이터
     eval_train_dataset = EvalDataset(train_x, train_y)
