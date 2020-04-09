@@ -16,3 +16,9 @@ data_config = OrderedDict({
 #    'bookcorpus_path': '/Users/judepark/Documents/toy_projects/bookcorpus/books_large_p1.txt'
 })
 
+bert_config = OrderedDict({
+    'model': 'bert-base-uncased',
+    'output_hidden_states': True,
+    'labeling': 'scaling'
+})
+

@@ -1,15 +1,14 @@
 __author__ = 'JudePark'
 __email__ = 'judepark@kookmin.ac.kr'
 
-from sklearn.linear_model import LogisticRegression
 
 from bookcorpus_dataset import get_data_loader, BookCorpusDataset
+from config import get_device_setting, data_config, bert_config
 from eval_dataset import EvalDataset, get_eval_loader
-from eval_tasks import extract_features, fit_lr
-from config import get_device_setting, data_config
 from transformers import BertModel, BertTokenizer
 from torch.utils.tensorboard import SummaryWriter
-from torch.utils.data import Dataset, DataLoader
+from eval_tasks import extract_features, fit_lr
+from torch.utils.data import DataLoader
 from eval_data_utils import load_data
 from model import BertSE
 from tqdm import tqdm
@@ -38,17 +37,21 @@ class Trainer(object):
         self.train_loader = train_loader
         self.eval_train_loader = eval_train_loader
         self.eval_test_loader = eval_test_loader
-
+        self.config = bert_config
 
     def train(self):
         steps = 0
         for iter in tqdm(range(self.epoch)):
+            print(f'*************** start {iter} epoch training ... ***************')
             for idx, input_ids in tqdm(enumerate(self.train_loader)):
                 steps += 1
                 self.optimizer.zero_grad()
                 input_ids = input_ids.to(self.device)
                 bs, seq_len = input_ids.size()
-                target = self.model.generate_smooth_targets(bs)
+
+                target = self.model.generate_smooth_scaling_targets(bs)
+                # target = self.model.generate_smooth_targets(bs)
+
                 output = self.model(input_ids)
 
                 kl_loss = self.loss(output, target)
@@ -67,8 +70,6 @@ class Trainer(object):
                     T.save(self.model.state_dict(), './checkpoint/' + f'sentence_representation.pt')
 
     def evaluate(self, eval_train_loader: DataLoader, eval_test_loader: DataLoader, steps: int) -> None:
-        lr = LogisticRegression(C=1.0)
-
         print('*************** eval_training ... ***************')
         eval_train_embed, eval_train_labels = extract_features(self.model, eval_train_loader)
         eval_test_embed, eval_test_labels = extract_features(self.model, eval_test_loader)
@@ -89,7 +90,16 @@ if __name__ == '__main__':
         f.close()
 
     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-    bert_model = BertModel.from_pretrained('bert-base-uncased')
+
+    if bert_config['output_hidden_states']:
+        bert_model = BertModel.from_pretrained(
+            bert_config['model'],
+            output_hidden_states=bert_config['output_hidden_states']
+        )
+    else:
+        bert_model = BertModel.from_pretrained(bert_config['model'])
+
+
     model = BertSE(bert_model, False)
 
     train_x, test_x, train_y, test_y = load_data('MPQA', './rsc/eval_data/mpqa.all', tokenizer)
@@ -105,7 +115,6 @@ if __name__ == '__main__':
     # 검증 - 테스트 데이터
     eval_test_dataset = EvalDataset(test_x, test_y)
     eval_test_loader = get_eval_loader(eval_test_dataset, 32)
-
 
     Trainer(model, tokenizer, train_loader, eval_train_loader, eval_test_loader, 5).train()
 

@@ -124,34 +124,16 @@ class BertSE(nn.Module):
         targets /= targets.sum(1, keepdim=True)
         return targets
 
+    def generate_smooth_scaling_targets(self, bs):
+        targets = torch.zeros(bs, bs, device=self.device)
+        for offset, scale in zip([-3, -2, -1, 1, 2, 3], [5, 10, 10, 5]):
+            targets += scale * torch.diag(torch.ones(bs - abs(offset), self.device), diagonal=offset)
+        targets /= targets.sum(1, keepdim=True)
+        return targets
+
 
 if __name__ == '__main__':
     pass
-#     import torch
-#     from transformers import BertTokenizer
-#     from data_utils import tokenize
-
-#     text = [
-#         'he is a king',
-#         'she is a queen',
-#         'he is a man',
-#         'she is a woman',
-#         'warsaw is poland capital',
-#         'berlin is germany capital',
-#         'paris is france capital',
-#     ]
-
-#     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-#     text = torch.LongTensor([tokenize(tokenizer, t)['input_ids'] for t in text])
-#     model = BertSE(BertModel.from_pretrained('bert-base-uncased'), False)
-#     output = model(text)
-#     print(output.shape)
-#     print(output)
-#     bert_lstm_model = BertSE(BertModel.from_pretrained('bert-base-uncased'), True)
-#     output = bert_lstm_model(text)
-#     print(output.shape)
-#     print(output)
-# -
 
 
 
