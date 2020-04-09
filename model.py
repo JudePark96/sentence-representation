@@ -127,7 +127,7 @@ class BertSE(nn.Module):
     def generate_smooth_scaling_targets(self, bs):
         targets = torch.zeros(bs, bs, device=self.device)
         for offset, scale in zip([-3, -2, -1, 1, 2, 3], [5, 10, 10, 5]):
-            targets += scale * torch.diag(torch.ones(bs - abs(offset), self.device), diagonal=offset)
+            targets += scale * torch.diag(torch.ones(bs-abs(offset), device=self.device), diagonal=offset)
         targets /= targets.sum(1, keepdim=True)
         return targets
 
