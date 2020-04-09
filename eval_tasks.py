@@ -48,7 +48,7 @@ def extract_features(encoder: BertSE, data_loader: DataLoader) -> np.ndarray:
 
 
 def fit_lr(train_x: np.ndarray, train_y: np.ndarray, test_x: np.ndarray, test_y: np.ndarray):
-    lr = LogisticRegression(C=1.0, random_state=49)
+    lr = LogisticRegression(C=1.0, max_iter=2000, random_state=49)
     
     # Torch -> Numpy
     # train_x, train_y = train_x.cpu().detach().numpy(), train_y.cpu().detach().numpy()
